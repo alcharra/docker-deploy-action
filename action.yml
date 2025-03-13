@@ -22,14 +22,10 @@ inputs:
   project_path:
     description: "Remote directory on server where files should be uploaded"
     required: true
-  compose_files:
-    description: "Comma-separated list of files for Docker Compose (for standalone mode)"
-    required: false
+  deploy_file:
+    description: "Path to the Docker Compose or Stack file used for deployment"
+    required: true
     default: "docker-compose.yml"
-  stack_files:
-    description: "Comma-separated list of files for Docker Swarm (for stack mode)"
-    required: false
-    default: "docker-stack.yml"
   extra_files:
     description: "Additional files to upload (like .env, traefik.yml)"
     required: false
@@ -46,6 +42,11 @@ inputs:
   docker_network_driver:
     description: "Driver for the Docker network (bridge, overlay, macvlan, etc.)"
     required: false
+    default: "bridge"
+  docker_network_attachable:
+    description: "Allow standalone containers to attach to the Swarm network (true/false)"
+    required: false
+    default: "false"
   docker_prune:
     description: "Optional prune type: system, volumes, networks, images, containers, none"
     required: false
@@ -59,6 +60,10 @@ inputs:
   registry_pass:
     description: "Registry Authentication Pass"
     required: true
+  enable_rollback:
+    description: "Enable automatic rollback if deployment fails (true/false)"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -72,14 +77,15 @@ runs:
         SSH_USER: ${{ inputs.ssh_user }}
         SSH_KEY: ${{ inputs.ssh_key }}
         PROJECT_PATH: ${{ inputs.project_path }}
-        COMPOSE_FILES: ${{ inputs.compose_files }}
-        STACK_FILES: ${{ inputs.stack_files }}
+        DEPLOY_FILE: ${{ inputs.deploy_file }}
         EXTRA_FILES: ${{ inputs.extra_files }}
         DOCKER_PRUNE: ${{ inputs.docker_prune }}
         MODE: ${{ inputs.mode }}
         STACK_NAME: ${{ inputs.stack_name }}
         DOCKER_NETWORK: ${{ inputs.docker_network }}
         DOCKER_NETWORK_DRIVER: ${{ inputs.docker_network_driver }}
+        DOCKER_NETWORK_ATTACHABLE: ${{ inputs.docker_network_attachable }}
         REGISTRY_HOST: ${{ inputs.registry_host }}
         REGISTRY_USER: ${{ inputs.registry_user }}
         REGISTRY_PASS: ${{ inputs.registry_pass }}
+        ENABLE_ROLLBACK: ${{ inputs.enable_rollback }}
