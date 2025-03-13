@@ -22,14 +22,10 @@ inputs:
   project_path:
     description: "Remote directory on server where files should be uploaded"
     required: true
-  compose_files:
-    description: "Comma-separated list of files for Docker Compose (for standalone mode)"
-    required: false
+  deploy_file:
+    description: "Path to the Docker Compose or Stack file used for deployment"
+    required: true
     default: "docker-compose.yml"
-  stack_files:
-    description: "Comma-separated list of files for Docker Swarm (for stack mode)"
-    required: false
-    default: "docker-stack.yml"
   extra_files:
     description: "Additional files to upload (like .env, traefik.yml)"
     required: false
@@ -72,8 +68,7 @@ runs:
         SSH_USER: ${{ inputs.ssh_user }}
         SSH_KEY: ${{ inputs.ssh_key }}
         PROJECT_PATH: ${{ inputs.project_path }}
-        COMPOSE_FILES: ${{ inputs.compose_files }}
-        STACK_FILES: ${{ inputs.stack_files }}
+        DEPLOY_FILE: ${{ inputs.deploy_file }}
         EXTRA_FILES: ${{ inputs.extra_files }}
         DOCKER_PRUNE: ${{ inputs.docker_prune }}
         MODE: ${{ inputs.mode }}

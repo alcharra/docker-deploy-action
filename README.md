@@ -17,24 +17,23 @@ This GitHub Action deploys Docker Compose or Docker Swarm services over SSH. It 
 
 ## Inputs
 
-|  Input Parameter          |  Description                                                | Required     | Default Value        |
-| ------------------------- | ----------------------------------------------------------- | :----------: | -------------------- |
-| `ssh_host`                |  Hostname or IP of the target server                        | ✅          |                      |
-| `ssh_port`                |  SSH port                                                   | ❌          | `22`                 |
-| `ssh_user`                |  SSH username                                               | ✅          |                      |
-| `ssh_key`                 |  SSH private key                                            | ✅          |                      |
-| `project_path`            |  Path on the server where files will be uploaded            | ✅          |                      |
-| `compose_files`           |  Comma-separated list of Compose files                      | ❌          | `docker-compose.yml` |
-| `stack_files`             |  Comma-separated list of Stack files                        | ❌          | `docker-stack.yml`   |
-| `extra_files`             |  Additional files to upload (like `.env` or `traefik.yml`)  | ❌          |                      |
-| `mode`                    |  Deployment mode (`compose` or `stack`)                     | ❌          | `compose`            |
-| `stack_name`              |  Swarm stack name (only used if `mode` is `stack`)          | ❌          |                      |
-| `docker_network`          |  Docker network name to ensure exists                       | ❌          |                      |
-| `docker_network_driver`   |  Network driver (`bridge`, `overlay`, `macvlan`, etc.)      | ❌          |                      |
-| `docker_prune`            |  Type of Docker prune to run after deployment               | ❌          |                      |
-| `registry_host`           |  Registry Authentication Host                               | ❌          |                      |
-| `registry_user`           |  Registry Authentication User                               | ❌          |                      |
-| `registry_pass`           |  Registry Authentication Pass                               | ❌          |                      |
+|  Input Parameter          |  Description                                                  | Required     | Default Value        |
+| ------------------------- | ------------------------------------------------------------- | :----------: | -------------------- |
+| `ssh_host`                |  Hostname or IP of the target server                          | ✅          |                      |
+| `ssh_port`                |  SSH port                                                     | ❌          | `22`                 |
+| `ssh_user`                |  SSH username                                                 | ✅          |                      |
+| `ssh_key`                 |  SSH private key                                              | ✅          |                      |
+| `project_path`            |  Path on the server where files will be uploaded              | ✅          |                      |
+| `deploy_file`             |  Path to the Docker Compose or Stack file used for deployment | ✅          | `docker-compose.yml` |
+| `extra_files`             |  Additional files to upload (like `.env` or `traefik.yml`)    | ❌          |                      |
+| `mode`                    |  Deployment mode (`compose` or `stack`)                       | ❌          | `compose`            |
+| `stack_name`              |  Swarm stack name (only used if `mode` is `stack`)            | ❌          |                      |
+| `docker_network`          |  Docker network name to ensure exists                         | ❌          |                      |
+| `docker_network_driver`   |  Network driver (`bridge`, `overlay`, `macvlan`, etc.)        | ❌          |                      |
+| `docker_prune`            |  Type of Docker prune to run after deployment                 | ❌          |                      |
+| `registry_host`           |  Registry Authentication Host                                 | ❌          |                      |
+| `registry_user`           |  Registry Authentication User                                 | ❌          |                      |
+| `registry_pass`           |  Registry Authentication Pass                                 | ❌          |                      |
 
 ## Supported Prune Types
 
@@ -63,6 +62,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Example 1: Deploy to Docker Swarm
       - name: Deploy to Docker Swarm
         uses: alcharra/docker-deploy-action@v1
         with:
@@ -70,7 +70,7 @@ jobs:
           ssh_user: ${{ secrets.SSH_USER }}
           ssh_key: ${{ secrets.SSH_KEY }}
           project_path: /opt/myapp
-          stack_files: docker-stack.yml
+          deploy_file: docker-stack.yml
           extra_files: .env,traefik.yml
           mode: stack
           stack_name: myapp
@@ -80,6 +80,24 @@ jobs:
           registry_host: ghcr.io
           registry_user: ${{ github.actor }}
           registry_pass: ${{ secrets.GITHUB_TOKEN }}
+
+      # Example 2: Deploy using Docker Compose
+      - name: Deploy using Docker Compose
+        uses: alcharra/docker-deploy-action@v1
+        with:
+          ssh_host: ${{ secrets.SSH_HOST }}
+          ssh_user: ${{ secrets.SSH_USER }}
+          ssh_key: ${{ secrets.SSH_KEY }}
+          project_path: /opt/myapp
+          deploy_file: docker-compose.yml
+          extra_files: .env,database.env,nginx.conf  
+          mode: compose
+          docker_network: myapp_network
+          docker_network_driver: bridge
+          docker_prune: system
+          registry_host: docker.io
+          registry_user: ${{ secrets.DOCKER_USERNAME }}
+          registry_pass: ${{ secrets.DOCKER_PASSWORD }}
 ```
 
 ## How It Works
