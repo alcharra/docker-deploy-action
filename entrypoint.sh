@@ -9,7 +9,7 @@ DEPLOY_KEY_PATH=$(mktemp)
 echo "$SSH_KEY" > "$DEPLOY_KEY_PATH"
 chmod 600 "$DEPLOY_KEY_PATH"
 
-# Ensure project path exists
+# Ensure project path exists and backup the deploy file if rollback is enabled
 echo "📂 Checking if project path exists on remote server: $PROJECT_PATH"
 
 ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -s <<EOF
@@ -28,6 +28,26 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
         echo '✅ Project path created and verified.'
     else
         echo '✅ Project path already exists.'
+    fi
+
+    # Only create a backup if running in Compose mode and rollback is enabled
+    if [ "$ENABLE_ROLLBACK" == "true" ] && [ "$MODE" == "compose" ]; then
+        echo "🔄 Creating a backup of the current deployment file (if exists)"
+        
+        # Check if the deployment file exists
+        if ls "$PROJECT_PATH/$DEPLOY_FILE" >/dev/null 2>&1; then
+            cp "$PROJECT_PATH/$DEPLOY_FILE" "$PROJECT_PATH/${DEPLOY_FILE}.backup"
+            
+            # Verify the backup exists
+            if ls "$PROJECT_PATH/${DEPLOY_FILE}.backup" >/dev/null 2>&1; then
+                echo "✅ Backup created: ${DEPLOY_FILE}.backup"
+            else
+                echo "❌ Backup creation failed!"
+                exit 1
+            fi
+        else
+            echo "⚠️ No existing deployment file found, skipping backup."
+        fi
     fi
 EOF
 
@@ -78,24 +98,47 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
 
     echo "✅ All files verified on server"
 
+    # Check if Docker is installed
+    if ! command -v docker &>/dev/null; then
+        echo "❌ Docker is not installed or not in PATH. Please install Docker first."
+        exit 1
+    fi
+
     # Create network if needed
     if [ -n "$DOCKER_NETWORK" ]; then
         echo "🌐 Ensuring network $DOCKER_NETWORK exists"
 
-        if ! docker network inspect "$DOCKER_NETWORK" > /dev/null 2>&1; then
+        # Ensure DOCKER_NETWORK_DRIVER is set
+        if [ -z "$DOCKER_NETWORK_DRIVER" ]; then
+            echo "❌ DOCKER_NETWORK_DRIVER is not set!"
+            exit 1
+        fi
+
+        # Check if network already exists
+        if docker network inspect "$DOCKER_NETWORK" > /dev/null 2>&1; then
+            EXISTING_DRIVER=$(docker network inspect --format '{{ .Driver }}' "$DOCKER_NETWORK" 2>/dev/null)
+
+            if [ "$EXISTING_DRIVER" != "$DOCKER_NETWORK_DRIVER" ]; then
+                echo "⚠️ Network $DOCKER_NETWORK exists but uses driver $EXISTING_DRIVER instead of $DOCKER_NETWORK_DRIVER"
+                echo "🚨 Consider deleting and recreating the network manually."
+            fi
+            
+            echo "✅ Network $DOCKER_NETWORK already exists"
+        else
             echo "🔧 Creating $DOCKER_NETWORK network with driver $DOCKER_NETWORK_DRIVER"
 
-            if [ "$MODE" == "stack" ] && [ "$DOCKER_NETWORK_DRIVER" == "overlay" ]; then
-                # Use --scope swarm only for overlay networks in Swarm mode
-                docker network create \
-                    --driver "$DOCKER_NETWORK_DRIVER" \
-                    --scope swarm \
-                    "$DOCKER_NETWORK"
-            else
-                docker network create \
-                    --driver "$DOCKER_NETWORK_DRIVER" \
-                    "$DOCKER_NETWORK"
+            # Ensure Swarm mode is active if using an overlay network
+            if [ "$DOCKER_NETWORK_DRIVER" == "overlay" ] && [ "$MODE" == "stack" ] && ! docker info | grep -q "Swarm: active"; then
+                echo "⚠️ Warning: Swarm mode is not active. Overlay networks require Swarm mode for multi-node communication."
+                echo "ℹ️ Without Swarm mode, the overlay network will function as a single-node bridge."
             fi
+
+            # Create the Docker network
+            docker network create \
+                --driver "$DOCKER_NETWORK_DRIVER" \
+                $( [ "$DOCKER_NETWORK_DRIVER" == "overlay" ] && [ "$MODE" == "stack" ] && echo "--scope swarm" ) \
+                $( [ "$DOCKER_NETWORK_DRIVER" == "overlay" ] && [ "$MODE" == "stack" ] && [ "$DOCKER_NETWORK_ATTACHABLE" == "true" ] && echo "--attachable" ) \
+                "$DOCKER_NETWORK"
 
             # Verify network creation
             if docker network inspect "$DOCKER_NETWORK" > /dev/null 2>&1; then
@@ -104,13 +147,14 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
                 echo "❌ Network creation failed for $DOCKER_NETWORK!"
                 exit 1
             fi
-        else
-            echo "✅ Network $DOCKER_NETWORK already exists"
         fi
     fi
 
     echo "📦 Changing directory to $PROJECT_PATH"
-    cd "$PROJECT_PATH" || { echo "❌ Failed to change directory"; exit 1; }
+    if ! cd "$PROJECT_PATH"; then
+        echo "❌ Failed to change directory to $PROJECT_PATH"
+        exit 1
+    fi
 
     # Optional Registry Login
     if [ -n "$REGISTRY_HOST" ] && [ -n "$REGISTRY_USER" ] && [ -n "$REGISTRY_PASS" ]; then
@@ -122,40 +166,87 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
 
     # Deploy stack or compose services
     if [ "$MODE" == "stack" ]; then
+
+        # Check if Docker Swarm mode is enabled
+        if ! docker info | grep -q "Swarm: active"; then
+            echo "❌ Docker Swarm mode is not active. Please initialise Swarm using 'docker swarm init'."
+            exit 1
+        fi
+
         echo "⚓ Deploying stack $STACK_NAME using Docker Swarm"
         docker stack deploy -c "$DEPLOY_FILE" "$STACK_NAME" --with-registry-auth --detach=false
 
-        echo "✅ Verifying services in stack $STACK_NAME"
-        docker service ls --filter "label=com.docker.stack.namespace=$STACK_NAME"
-        
         # Verify stack services are running
+        echo "✅ Verifying services in stack $STACK_NAME"
+
         if ! docker service ls --filter "label=com.docker.stack.namespace=$STACK_NAME" | grep -v REPLICAS | grep -q " 0/"; then
             echo "✅ All services in stack $STACK_NAME are running correctly"
         else
             echo "❌ One or more services failed to start in stack $STACK_NAME!"
             docker service ls --filter "label=com.docker.stack.namespace=$STACK_NAME"
+            
+            # Run optional rollback logic
+            if [ "$ENABLE_ROLLBACK" == "true" ]; then
+                echo "🔄 Attempting rollback for failed services..."
+                for service in $(docker service ls --filter "label=com.docker.stack.namespace=$STACK_NAME" --format "{{.Name}}"); do
+                    echo "🔄 Rolling back service: $service"
+                    docker service update --rollback "$service"
+                done
+            fi
+
             exit 1
         fi
     else
         echo "🐳 Deploying using Docker Compose"
 
-        # Detect correct docker-compose command
+        # Support both legacy (`docker-compose` v1) and modern (`docker compose` v2)
         DOCKER_COMPOSE_CMD=$(command -v docker-compose || command -v docker compose)
 
+        if [ -z "$DOCKER_COMPOSE_CMD" ]; then
+            echo "❌ Docker Compose not found! Please install it first."
+            exit 1
+        fi
+
+        # Run deployment
         $DOCKER_COMPOSE_CMD pull && 
         $DOCKER_COMPOSE_CMD down && 
         $DOCKER_COMPOSE_CMD up -d
 
+        # Verify all compose services are running
         echo "✅ Verifying Compose services"
 
-        # Verify all compose services are running
         if $DOCKER_COMPOSE_CMD ps | grep -E "Exit|Restarting|Dead"; then
             echo "❌ One or more services failed to start!"
-            docker-compose ps
+            $DOCKER_COMPOSE_CMD ps
+
+            # Run optional rollback logic
+            if [ "$ENABLE_ROLLBACK" == "true" ]; then
+                echo "🔄 Attempting rollback..."
+                
+                if ls "$PROJECT_PATH/${DEPLOY_FILE}.backup" >/dev/null 2>&1; then
+                    echo "🔄 Restoring backup file..."
+                    mv "$PROJECT_PATH/${DEPLOY_FILE}.backup" "$PROJECT_PATH/$DEPLOY_FILE"
+
+                    echo "♻️ Re-deploying previous version..."
+                    $DOCKER_COMPOSE_CMD pull && 
+                    $DOCKER_COMPOSE_CMD down && 
+                    $DOCKER_COMPOSE_CMD up -d
+
+                    echo "✅ Rollback successful: Previous deployment file restored."
+                else
+                    echo "⚠️ No backup found! Rollback not possible."
+                fi
+            fi
             exit 1
         else
             echo "✅ All services are running"
-            docker-compose ps
+        fi
+        # Cleanup backup file after a successful deployment
+        if [ "$ENABLE_ROLLBACK" == "true" ]; then
+            if ls "$PROJECT_PATH/${DEPLOY_FILE}.backup" >/dev/null 2>&1; then
+                rm -f "$PROJECT_PATH/${DEPLOY_FILE}.backup"
+                echo "🧹 Removed backup file after successful deployment."
+            fi
         fi
     fi
 

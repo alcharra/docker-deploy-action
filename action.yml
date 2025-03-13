@@ -42,6 +42,11 @@ inputs:
   docker_network_driver:
     description: "Driver for the Docker network (bridge, overlay, macvlan, etc.)"
     required: false
+    default: "bridge"
+  docker_network_attachable:
+    description: "Allow standalone containers to attach to the Swarm network (true/false)"
+    required: false
+    default: "false"
   docker_prune:
     description: "Optional prune type: system, volumes, networks, images, containers, none"
     required: false
@@ -55,6 +60,10 @@ inputs:
   registry_pass:
     description: "Registry Authentication Pass"
     required: true
+  enable_rollback:
+    description: "Enable automatic rollback if deployment fails (true/false)"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -75,6 +84,8 @@ runs:
         STACK_NAME: ${{ inputs.stack_name }}
         DOCKER_NETWORK: ${{ inputs.docker_network }}
         DOCKER_NETWORK_DRIVER: ${{ inputs.docker_network_driver }}
+        DOCKER_NETWORK_ATTACHABLE: ${{ inputs.docker_network_attachable }}
         REGISTRY_HOST: ${{ inputs.registry_host }}
         REGISTRY_USER: ${{ inputs.registry_user }}
         REGISTRY_PASS: ${{ inputs.registry_pass }}
+        ENABLE_ROLLBACK: ${{ inputs.enable_rollback }}
