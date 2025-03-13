@@ -199,10 +199,12 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
     else
         echo "🐳 Deploying using Docker Compose"
 
-        # Support both legacy (`docker-compose` v1) and modern (`docker compose` v2)
-        DOCKER_COMPOSE_CMD=$(command -v docker-compose || command -v docker compose)
-
-        if [ -z "$DOCKER_COMPOSE_CMD" ]; then
+        # Support both legacy (docker-compose v1) and modern (docker compose v2)
+        if docker compose version >/dev/null 2>&1; then
+            DOCKER_COMPOSE_CMD="docker compose"
+        elif docker-compose version >/dev/null 2>&1; then
+            DOCKER_COMPOSE_CMD="docker-compose"
+        else
             echo "❌ Docker Compose not found! Please install it first."
             exit 1
         fi
