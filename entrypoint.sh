@@ -116,14 +116,17 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
 
         # Check if network already exists
         if docker network inspect "$DOCKER_NETWORK" > /dev/null 2>&1; then
-            EXISTING_DRIVER=$(docker network inspect --format '{{ .Driver }}' "$DOCKER_NETWORK" 2>/dev/null)
-
-            if [ "$EXISTING_DRIVER" != "$DOCKER_NETWORK_DRIVER" ]; then
-                echo "⚠️ Network $DOCKER_NETWORK exists but uses driver $EXISTING_DRIVER instead of $DOCKER_NETWORK_DRIVER"
-                echo "🚨 Consider deleting and recreating the network manually."
-            fi
+            echo "✅ Network $DOCKER_NETWORK exists. Checking driver..."
             
-            echo "✅ Network $DOCKER_NETWORK already exists"
+            # Fetch the driver
+            EXISTING_DRIVER=\$(docker network inspect --format '{{ .Driver }}' "$DOCKER_NETWORK")
+
+            if [ "\$EXISTING_DRIVER" != "$DOCKER_NETWORK_DRIVER" ]; then
+                echo "⚠️ Network $DOCKER_NETWORK exists but uses driver '\$EXISTING_DRIVER' instead of '$DOCKER_NETWORK_DRIVER'"
+                echo "🚨 Consider deleting and recreating the network manually."
+            else
+                echo "✅ Network driver matches expected: $DOCKER_NETWORK_DRIVER"
+            fi
         else
             echo "🔧 Creating $DOCKER_NETWORK network with driver $DOCKER_NETWORK_DRIVER"
 
@@ -210,16 +213,16 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
         fi
 
         # Run deployment
-        $DOCKER_COMPOSE_CMD pull && 
-        $DOCKER_COMPOSE_CMD down && 
-        $DOCKER_COMPOSE_CMD up -d
+        \$DOCKER_COMPOSE_CMD pull && 
+        \$DOCKER_COMPOSE_CMD down && 
+        \$DOCKER_COMPOSE_CMD up -d
 
         # Verify all compose services are running
         echo "✅ Verifying Compose services"
 
-        if $DOCKER_COMPOSE_CMD ps | grep -E "Exit|Restarting|Dead"; then
+        if \$DOCKER_COMPOSE_CMD ps | grep -E "Exit|Restarting|Dead"; then
             echo "❌ One or more services failed to start!"
-            $DOCKER_COMPOSE_CMD ps
+            \$DOCKER_COMPOSE_CMD ps
 
             # Run optional rollback logic
             if [ "$ENABLE_ROLLBACK" == "true" ]; then
@@ -230,9 +233,9 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
                     mv "$PROJECT_PATH/${DEPLOY_FILE}.backup" "$PROJECT_PATH/$DEPLOY_FILE"
 
                     echo "♻️ Re-deploying previous version..."
-                    $DOCKER_COMPOSE_CMD pull && 
-                    $DOCKER_COMPOSE_CMD down && 
-                    $DOCKER_COMPOSE_CMD up -d
+                    \$DOCKER_COMPOSE_CMD pull && 
+                    \$DOCKER_COMPOSE_CMD down && 
+                    \$DOCKER_COMPOSE_CMD up -d
 
                     echo "✅ Rollback successful: Previous deployment file restored."
                 else
@@ -265,6 +268,7 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
 EOF
 
 # Cleanup SSH key
+echo "🧹 Cleaning up SSH key..."
 rm -f "$DEPLOY_KEY_PATH"
 
 echo "✅ Deployment complete"
