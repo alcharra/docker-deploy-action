@@ -1,33 +1,34 @@
-# 🐳 Docker Deploy Action  
+# 🐳 Docker Deploy Action
+
+[![Deploy Test](https://github.com/alcharra/docker-deploy-action/actions/workflows/deploy-test.yml/badge.svg)](https://github.com/alcharra/docker-deploy-action/actions/workflows/deploy-test.yml)
+[![GitHub tag](https://img.shields.io/github/tag/alcharra/docker-deploy-action.svg)](https://github.com/alcharra/docker-deploy-action-go/releases)
+[![ShellCheck](https://github.com/alcharra/docker-deploy-action/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/alcharra/docker-deploy-action/actions/workflows/shellcheck.yml)
 
 A **production-ready** GitHub Action for deploying **Docker Compose** or **Docker Swarm** services over SSH.  
 
-This action securely **uploads deployment files**, ensures the **target server is ready** and **automates network creation** if needed. It deploys services with **health checks, rollback support and optional cleanup** to keep your infrastructure stable.  
+This action securely **uploads deployment files**, ensures the **target server is ready** and **automates network creation** if needed. It deploys services with **health checks, rollback support and optional cleanup** to keep your infrastructure stable.
 
-## 🚀 Key Features of Docker Deploy Action  
+> ℹ️ **Notice:** A faster, lightweight alternative built with Go is now available!  
+> Check out [docker-deploy-action-go](https://github.com/alcharra/docker-deploy-action-go) – same features, better performance 🚀  
+> 🛠️ **This action will continue to be actively maintained and updated.**
 
-- **📂 Flexible & Seamless Deployment** – Deploy **Docker Compose** or **Docker Swarm** configurations **over SSH**, with support for different environments.  
-- **🛠️ Automatic Project Setup** – Creates the **target project directory** if it doesn't exist, ensuring **correct ownership & permissions**.  
-- **📦 Secure Environment Support** – Upload any **configuration or environment files** needed for your deployment.  
-- **🔑 Private Registry Authentication** – Supports **secure login** to private container registries (Docker Hub, GitHub Container Registry, etc.).  
-- **🌐 Intelligent Network Management** – Automatically **creates Docker networks** when required, with configurable **drivers**.  
-- **🩺 Built-in Service Health Checks** – Ensures services **start correctly** and remain **healthy after deployment**.  
-- **♻️ Automatic Rollback for Failed Deployments** –  
-  - **Swarm Mode**: Rolls back to the **previously working state** using `docker service update --rollback`.  
-  - **Compose Mode**: Restores the **last successful deployment file** if services fail to start.  
-- **🧹 Automatic Cleanup & Pruning** – Optionally run **Docker prune** to free up unused resources.  
-- **📜 Detailed Logs for Debugging** – Provides **clear, structured logs** for **every step**, including **file transfers, network management and verification**.  
-- **🛡️ Secure by Design** – Automatically **removes sensitive SSH keys** after deployment to **enhance security**.  
+## What This Action Brings You
 
----
+This GitHub Action makes your Docker deployments smooth, secure and reliable — whether you’re using Docker Compose or Swarm. Here's what you get out of the box:
 
-### ⚡ **Why Use This Action?**  
-🚀 **Fast & Easy:** Automate Docker deployments without manual SSH access.  
-📂 **Multi-File Support:** Upload multiple **configuration files** (e.g., `.env`, secrets, custom YAML).  
-🔄 **Resilient Deployments:** Automatic rollback if services fail to start.  
-🩺 **Health Checks Built-In:** Ensures services are **actually running** after deployment.  
-🔐 **Secure by Design:** Encrypted SSH keys, registry authentication and automatic cleanup.  
-🛠️ **Full Control:** Custom networks, registry logins and detailed logs.  
+- **📂 Flexible Deployments:** Deploy Docker Compose or Swarm stacks seamlessly over SSH to any Linux server.
+- **🛠️ Smart Setup:** Automatically creates the target project directory with the correct permissions and ownership.
+- **📦 Full Config Support:** Upload multiple config and environment files (`.env`, secrets, YAML, etc.) effortlessly.
+- **🔑 Private Registry Access:** Supports secure login to private registries like Docker Hub and GHCR.
+- **🌐 Network Intelligence:** Ensures required Docker networks exist or creates them automatically with your chosen driver.
+- **🩺 Health-First Deployments:** Built-in health checks confirm services are running and stable after deployment.
+- **♻️ Auto-Rollback on Failures:**  
+  - **Swarm:** Uses Docker's native `--rollback` feature.  
+  - **Compose:** Restores the last known working deployment file.
+- **🧹 Optional Cleanup:** Reclaim disk space with Docker prune—configurable by type.
+- **📜 Transparent Logs:** Get structured logs for every step — from file transfers to health checks.
+- **🛡️ Built-In Security:** SSH keys are securely handled and wiped after deployment to keep your infrastructure safe.
+- **🚀 Fast Automation:** No need for manual SSH commands — just push to GitHub and deploy!
 
 ## Inputs
 
@@ -51,79 +52,74 @@ This action securely **uploads deployment files**, ensures the **target server i
 | `registry_pass`             |  Registry Authentication Pass                                              | ❌          |                      |
 | `enable_rollback`           |  Enable automatic rollback if deployment fails (`true/false`)              | ❌          | `false`              |
 
-## 🌐 **Network Management in This Action**
+## Supported Prune Types
 
-This action **ensures the required network exists** before deployment and automatically creates it if missing.  
+- `none` – No pruning (default)
+- `system` – Remove unused images, containers, volumes and networks
+- `volumes` – Remove unused volumes
+- `networks` – Remove unused networks
+- `images` – Remove unused images
+- `containers` – Remove stopped containers
 
-### **How It Works:**
-- If **the specified network exists**, it **verifies the driver** and continues deployment.  
-- If **the network is missing**, it is **created automatically** using the specified driver.  
-- If **Swarm Mode (`stack`)** is used with the `overlay` driver:
-  - The action **checks if Swarm mode is active**.
-  - If Swarm **is not active**, a **warning** is displayed since `overlay` requires Swarm for multi-node communication.
-- If the **network should be attachable** (`docker_network_attachable: true`):
-  - The `--attachable` flag is **added automatically**, allowing standalone containers to connect to the network.
-- If an **existing network has a different driver**, a **warning is displayed**.
+## Network Management
 
-### **Network Scenarios:**
-✅ **A Network Will Be Created If:**
-- The specified network **does not exist**.
-- The deployment uses **a custom network** (`docker_network` is set).
-- The driver is **valid and supported**.
+This action ensures the required Docker network exists before deploying. If it is missing, it will be created automatically using the specified driver.
 
-⚠️ **Warnings Will Be Shown If:**
-- The **existing network driver differs** from the specified `docker_network_driver`.
-- **Swarm mode is inactive**, but an **overlay network** is requested.
+### How it works
 
-### **Example Usage:**
+- If the network already exists, its driver is verified.
+- If the network does not exist, it is created using the provided driver.
+- If `docker_network_attachable` is set to `true`, the network is created with the `--attachable` flag.
+- In `stack` mode with the `overlay` driver:
+  - Swarm mode must be active on the target server.
+  - A warning is displayed if Swarm is not active.
+- If the existing network uses a different driver than specified, a warning is displayed.
+
+### Network scenarios
+
+A network will be created if:
+- The specified network does not exist.
+- A custom network is defined via `docker_network`.
+- The provided driver is valid and supported.
+
+Warnings will be displayed if:
+- The existing network's driver does not match the one specified.
+- Swarm mode is inactive but `overlay` is requested in `stack` mode.
+
+### Example usage
+
 ```yaml
 docker_network: my_network
 docker_network_driver: overlay
 docker_network_attachable: true
 ```
 
-- If `my_network` **does not exist**, it will be **created automatically**.  
-- If **Swarm mode is inactive**, a **warning** is displayed, but deployment continues.  
-- The network is created with `--attachable`, allowing non-Swarm containers to connect.  
+## Rollback Behaviour
 
-For more details on Docker networking, see the [Docker Documentation](https://docs.docker.com/network/).
+This action supports automatic rollback if a deployment fails to start correctly.
 
-## 🔄 Rollback Behavior
+### How it works
 
-Rollback automatically **reverts deployments** if the new deployment **fails to start properly**.
+- In `stack` mode:
+  - Docker Swarm’s built-in rollback is used.
+  - The command `docker service update --rollback <service-name>` is run to revert services in the stack to the last working state.
 
-### **How It Works:**
-- If **Swarm Mode (`stack`)** is used:
-  - **Docker Swarm’s built-in rollback** is triggered using:  
-    ```sh
-    docker service update --rollback <service-name>
-    ```
-  - This reverts **all services in the stack** to their last working state.
+- In `compose` mode:
+  - A backup of the current deployment file is created before deployment.
+  - If services fail to start, the backup is restored and Compose is re-deployed.
+  - If rollback is successful, the backup file is removed to avoid stale data.
 
-- If **Compose Mode (`compose`)** is used:
-  - A **backup of the previous deployment file** is created before deployment.
-  - If services fail to start, the backup is **restored automatically** and Compose is re-deployed.
-  - If rollback is successful, the backup is **removed** to avoid stale files.
+### Rollback triggers
 
-### **Rollback Scenarios:**
-✅ **Rollback Triggers If:**
-- Services fail **health checks**.
-- A container **immediately exits** after starting.
-- Docker reports an **error during service startup**.
+Rollback will occur if:
+- Services fail health checks.
+- Containers immediately exit after starting.
+- Docker returns an error during service startup.
 
-❌ **Rollback Will NOT Trigger If:**
-- The deployment succeeds, even if the application has **internal errors**.
-- A manually stopped service is detected.
-- The user **disables rollback** (`enable_rollback: false`).
-
-## Supported Prune Types
-
-- `none`: No pruning (default)
-- `system`: Remove unused images, containers, volumes and networks
-- `volumes`: Remove unused volumes
-- `networks`: Remove unused networks
-- `images`: Remove unused images
-- `containers`: Remove stopped containers
+Rollback will not occur if:
+- The deployment succeeds but the application has internal errors.
+- A service is manually stopped by the user.
+- Rollback is disabled via `enable_rollback: false`.
 
 ## Example Workflow
 
@@ -190,7 +186,7 @@ jobs:
 
 ## Important Notes
 
-- This action is designed for Linux servers (Debian, Ubuntu, etc.)
+- This action is designed for Linux servers (Debian, Ubuntu, Alpine, CentOS)
 - The SSH user must have permissions to write files and run Docker commands
 - If the `project_path` does not exist, it will be created with permissions `750` and owned by the provided SSH user
 - If using Swarm mode, the target machine must be a Swarm manager
@@ -200,6 +196,7 @@ jobs:
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
 - [Docker Swarm Documentation](https://docs.docker.com/engine/swarm/)
 - [Docker Prune Documentation](https://docs.docker.com/config/pruning/)
+- [Docker Documentation](https://docs.docker.com/network/)
 
 ## Tips for Maintainers
 

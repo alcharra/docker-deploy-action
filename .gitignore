@@ -1,0 +1,59 @@
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.swn
+*.orig
+*~
+
+# SSH keys and sensitive files
+*.pem
+*.pub
+*.key
+*.crt
+*.env
+!.env.example
+
+# Docker-related overrides and folders
+docker-compose.override.yml
+docker-compose.*.yml
+.env.docker
+.docker/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# GitHub Actions temp/artifact files
+__generated__/
+.github/*.bak
+.github/*~
+.github/workflows/*.bak
+
+# IDE/editor configs
+.vscode/
+.idea/
+*.code-workspace
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Node dependencies or builds
+node_modules/
+dist/
+npm-debug.log*
+
+# Backup or archive files
+*.tar
+*.gz
+*.zip
+
+# ShellCheck backup
+*.shellcheck
+
+# Local deployment artifacts
+deploy-key
+deploy.sh.backup

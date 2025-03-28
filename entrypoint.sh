@@ -177,7 +177,8 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
         fi
 
         echo "⚓ Deploying stack $STACK_NAME using Docker Swarm"
-        docker stack deploy -c "$DEPLOY_FILE" "$STACK_NAME" --with-registry-auth --detach=false
+        STACK_FILE_NAME=\$(basename "$DEPLOY_FILE")
+        docker stack deploy -c "\$STACK_FILE_NAME" "$STACK_NAME" --with-registry-auth --detach=false
 
         # Verify stack services are running
         echo "✅ Verifying services in stack $STACK_NAME"
@@ -241,17 +242,15 @@ ssh -i "$DEPLOY_KEY_PATH" -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@
                 else
                     echo "⚠️ No backup found! Rollback not possible."
                 fi
+
+                if ls "$PROJECT_PATH/${DEPLOY_FILE}.backup" >/dev/null 2>&1; then
+                    rm -f "$PROJECT_PATH/${DEPLOY_FILE}.backup"
+                    echo "🧹 Removed backup file after successful deployment."
+                fi
             fi
             exit 1
         else
             echo "✅ All services are running"
-        fi
-        # Cleanup backup file after a successful deployment
-        if [ "$ENABLE_ROLLBACK" == "true" ]; then
-            if ls "$PROJECT_PATH/${DEPLOY_FILE}.backup" >/dev/null 2>&1; then
-                rm -f "$PROJECT_PATH/${DEPLOY_FILE}.backup"
-                echo "🧹 Removed backup file after successful deployment."
-            fi
         fi
     fi
 
