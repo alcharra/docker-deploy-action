@@ -22,8 +22,8 @@ jobs:
           ssh_user: ${{ secrets.TEST_SSH_USER }}
           ssh_key: ${{ secrets.TEST_SSH_KEY }}
           project_path: /home/${{ secrets.TEST_SSH_USER }}/test/compose
-          deploy_file: tests/compose/docker-compose.yml
-          extra_files: tests/compose/.env
+          deploy_file: ./tests/compose/docker-compose.yml
+          extra_files: ./tests/compose/.env
           mode: compose
           docker_network: test_network_compose
           docker_network_driver: bridge
@@ -45,8 +45,8 @@ jobs:
           ssh_user: ${{ secrets.TEST_SSH_USER }}
           ssh_key: ${{ secrets.TEST_SSH_KEY }}
           project_path: /home/${{ secrets.TEST_SSH_USER }}/test/stack
-          deploy_file: tests/stack/docker-stack.yml
-          extra_files: tests/stack/redis.conf,tests/stack/nginx.conf
+          deploy_file: ./tests/stack/docker-stack.yml
+          extra_files: ./tests/stack/redis.conf,./tests/stack/nginx.conf
           mode: stack
           stack_name: test_stack
           docker_network: test_network_stack
