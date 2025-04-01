@@ -8,7 +8,8 @@ A **production-ready** GitHub Action for deploying **Docker Compose** or **Docke
 
 This action securely **uploads deployment files**, ensures the **target server is ready** and **automates network creation** if needed. It deploys services with **health checks, rollback support and optional cleanup** to keep your infrastructure stable.
 
-> ℹ️ **Notice:** A faster, lightweight alternative built with Go is now available!  
+> [!NOTE]  
+> A faster, lightweight alternative built with Go is now available!  
 > Check out [docker-deploy-action-go](https://github.com/alcharra/docker-deploy-action-go) – same features, better performance 🚀  
 > 🛠️ **This action will continue to be actively maintained and updated.**
 
@@ -32,25 +33,53 @@ This GitHub Action makes your Docker deployments smooth, secure and reliable —
 
 ## Inputs
 
-|  Input Parameter            |  Description                                                               | Required     | Default Value        |
-| -------------------------   | -------------------------------------------------------------------------- | :----------: | -------------------- |
-| `ssh_host`                  |  Hostname or IP of the target server                                       | ✅          |                      |
-| `ssh_port`                  |  SSH port                                                                  | ❌          | `22`                 |
-| `ssh_user`                  |  SSH username                                                              | ✅          |                      |
-| `ssh_key`                   |  SSH private key                                                           | ✅          |                      |
-| `project_path`              |  Path on the server where files will be uploaded                           | ✅          |                      |
-| `deploy_file`               |  Path to the Docker Compose or Stack file used for deployment              | ✅          | `docker-compose.yml` |
-| `extra_files`               |  Additional files to upload (e.g., `.env`, config files)                   | ❌          |                      |
-| `mode`                      |  Deployment mode (`compose` or `stack`)                                    | ❌          | `compose`            |
-| `stack_name`                |  Swarm stack name (only used if `mode` is `stack`)                         | ❌          |                      |
-| `docker_network`            |  Docker network name to ensure exists                                      | ❌          |                      |
-| `docker_network_driver`     |  Network driver (`bridge`, `overlay`, `macvlan`, etc.)                     | ❌          | `bridge`             |
-| `docker_network_attachable` |  Allow standalone containers to attach to the Swarm network (`true/false`) | ❌          | `false`              |
-| `docker_prune`              |  Type of Docker prune to run after deployment                              | ❌          |                      |
-| `registry_host`             |  Registry Authentication Host                                              | ❌          |                      |
-| `registry_user`             |  Registry Authentication User                                              | ❌          |                      |
-| `registry_pass`             |  Registry Authentication Pass                                              | ❌          |                      |
-| `enable_rollback`           |  Enable automatic rollback if deployment fails (`true/false`)              | ❌          | `false`              |
+| Input Parameter             | Description                                                                                          | Required | Default Value        |
+| --------------------------- | ---------------------------------------------------------------------------------------------------- | :------: | -------------------- |
+| `ssh_host`                  | Hostname or IP address of the target server                                                          |    ✅    |                      |
+| `ssh_port`                  | Port used for the SSH connection                                                                     |    ❌    | `22`                 |
+| `ssh_user`                  | Username used for the SSH connection                                                                 |    ✅    |                      |
+| `ssh_key`                   | Private SSH key for authentication                                                                   |    ✅    |                      |
+| `ssh_key_passphrase`        | Passphrase for the encrypted SSH private key                                                         |    ❌    |                      |
+| `ssh_known_hosts`           | Contents of the SSH `known_hosts` file used to verify the server's identity                          |    ❌    |                      |
+| `fingerprint`               | SSH host fingerprint for verifying the server's identity (SHA256 format)                             |    ❌    |                      |
+| `timeout`                   | SSH connection timeout in seconds (e.g. `10`, `30`, `60`)                                            |    ❌    | `10`                |
+| `project_path`              | Path on the server where files will be uploaded                                                      |    ✅    |                      |
+| `deploy_file`               | Path to the file used for defining the deployment (e.g. Docker Compose)                              |    ✅    | `docker-compose.yml` |
+| `extra_files`               | Additional files to upload (e.g. `.env`, config files)                                               |    ❌    |                      |
+| `mode`                      | Deployment mode (`compose` or `stack`)                                                               |    ❌    | `compose`            |
+| `stack_name`                | Stack name used during Swarm deployment (required if mode is `stack`)                                |    ❌    |                      |
+| `compose_pull`              | Whether to pull the latest images before bringing up services with Docker Compose (`true` / `false`) |    ❌    | `true`               |
+| `docker_network`            | Name of the Docker network to be used or created if missing                                          |    ❌    |                      |
+| `docker_network_driver`     | Driver for the network (`bridge`, `overlay`, `macvlan`, etc.)                                        |    ❌    | `bridge`             |
+| `docker_network_attachable` | Whether standalone containers can attach to the network (`true` / `false`)                           |    ❌    | `false`              |
+| `docker_prune`              | Type of Docker resource prune to run after deployment                                                |    ❌    | `none`               |
+| `registry_host`             | Host address for the registry or remote service requiring authentication                             |    ❌    |                      |
+| `registry_user`             | Username for authenticating with the registry or remote service                                      |    ❌    |                      |
+| `registry_pass`             | Password or token for authenticating with the registry or remote service                             |    ❌    |                      |
+| `enable_rollback`           | Whether to enable automatic rollback if deployment fails (`true` / `false`)                          |    ❌    | `false`              |
+
+## SSH Host Key Verification
+
+This tool supports two secure options for verifying the SSH server's identity during deployment:
+
+- Providing a `known_hosts` entry (OpenSSH-compatible format)
+- Supplying the server's SSH key `fingerprint` (a single-line public key)
+
+You only need to provide one of these — not both.
+
+> [!WARNING]  
+> If neither `ssh_known_hosts` nor `fingerprint` is specified, the tool will fall back to scanning the server key using `ssh-keyscan`.  
+> While this avoids prompts during automation, it does not confirm the authenticity of the host key.  
+> This approach is not secure and should not be used in production environments.
+
+> [!IMPORTANT]  
+> For a secure deployment, always provide either a `known_hosts` entry or a `fingerprint`.  
+> This helps ensure that the connection is made to the correct server and prevents impersonation.
+
+> [!TIP]  
+> Use `ssh_known_hosts` for full compatibility with OpenSSH and to support multiple key types.  
+> Use `fingerprint` for a simpler, one-line setup if connecting to a single known host.  
+> In either case, store the value securely using a GitHub environment variable or secret.
 
 ## Supported Prune Types
 
@@ -78,11 +107,13 @@ This action ensures the required Docker network exists before deploying. If it i
 ### Network scenarios
 
 A network will be created if:
+
 - The specified network does not exist.
 - A custom network is defined via `docker_network`.
 - The provided driver is valid and supported.
 
 Warnings will be displayed if:
+
 - The existing network's driver does not match the one specified.
 - Swarm mode is inactive but `overlay` is requested in `stack` mode.
 
@@ -101,6 +132,7 @@ This action supports automatic rollback if a deployment fails to start correctly
 ### How it works
 
 - In `stack` mode:
+
   - Docker Swarm’s built-in rollback is used.
   - The command `docker service update --rollback <service-name>` is run to revert services in the stack to the last working state.
 
@@ -112,11 +144,13 @@ This action supports automatic rollback if a deployment fails to start correctly
 ### Rollback triggers
 
 Rollback will occur if:
+
 - Services fail health checks.
 - Containers immediately exit after starting.
 - Docker returns an error during service startup.
 
 Rollback will not occur if:
+
 - The deployment succeeds but the application has internal errors.
 - A service is manually stopped by the user.
 - Rollback is disabled via `enable_rollback: false`.
@@ -139,39 +173,75 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Example 1: Deploy to Docker Swarm
-      - name: Deploy to Docker Swarm
-        uses: alcharra/docker-deploy-action@v2
+      # Example 1: Deploy using Docker Stack
+      - name: Deploy using Docker Stack
+        uses: alcharra/docker-deploy-action-go@v1
         with:
-          ssh_host: ${{ secrets.SSH_HOST }}
-          ssh_user: ${{ secrets.SSH_USER }}
-          ssh_key: ${{ secrets.SSH_KEY }}
-          project_path: /opt/myapp
-          deploy_file: docker-stack.yml
-          extra_files: .env,traefik.yml
-          mode: stack
-          stack_name: myapp
-          docker_network: myapp_network
-          docker_network_driver: overlay
-          docker_prune: system
+          # Required SSH configuration
+          ssh_host: ${{ secrets.SSH_HOST }}              # Hostname or IP address of the target server
+          ssh_user: ${{ secrets.SSH_USER }}              # SSH username
+          ssh_key: ${{ secrets.SSH_KEY }}                # Private SSH key for authentication
+          project_path: /opt/myapp                       # Remote path where project files will be uploaded
+
+          # Deployment configuration
+          deploy_file: docker-stack.yml                  # Path to the Docker Stack file
+          mode: stack                                    # Deployment mode
+          stack_name: myapp                              # Name of the Docker stack to deploy
+
+          # Optional SSH security settings
+          ssh_key_passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}   # Passphrase for the SSH key, if encrypted
+          ssh_known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}         # SSH known_hosts contents to verify server identity
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }}             # SSH host fingerprint for additional verification
+
+          # Additional files to include in the deployment
+          extra_files: traefik.yml                  # Comma-separated list of extra files to upload
+
+          # Docker network configuration
+          docker_network: myapp_network                  # Name of the Docker network to use
+          docker_network_driver: overlay                 # Driver for the Docker network
+
+          # Cleanup after deployment
+          docker_prune: system                           # Type of Docker prune to perform
+
+          # Registry authentication (for pulling private images)
           registry_host: ghcr.io
           registry_user: ${{ github.actor }}
           registry_pass: ${{ secrets.GITHUB_TOKEN }}
 
       # Example 2: Deploy using Docker Compose
       - name: Deploy using Docker Compose
-        uses: alcharra/docker-deploy-action@v2
+        uses: alcharra/docker-deploy-action-go@v1
         with:
-          ssh_host: ${{ secrets.SSH_HOST }}
-          ssh_user: ${{ secrets.SSH_USER }}
-          ssh_key: ${{ secrets.SSH_KEY }}
-          project_path: /opt/myapp
-          deploy_file: docker-compose.yml
-          extra_files: .env,database.env,nginx.conf  
-          mode: compose
-          docker_network: myapp_network
-          docker_network_driver: bridge
-          docker_prune: system
+          # Required SSH configuration
+          ssh_host: ${{ secrets.SSH_HOST }}              # Hostname or IP address of the target server
+          ssh_user: ${{ secrets.SSH_USER }}              # SSH username
+          ssh_key: ${{ secrets.SSH_KEY }}                # Private SSH key for authentication
+          project_path: /opt/myapp                       # Remote path where project files will be uploaded
+
+          # Deployment configuration
+          deploy_file: docker-compose.yml                # Path to the Docker Compose file
+          mode: compose                                  # Deployment mode
+
+          # Optional SSH security settings
+          ssh_key_passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}   # Passphrase for the SSH key, if encrypted
+          ssh_known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}         # SSH known_hosts contents to verify server identity
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }}             # SSH host fingerprint for additional verification
+
+          # Additional files to include in the deployment
+          extra_files: .env,database.env,nginx.conf      # Comma-separated list of extra files to upload
+
+          # Deployment behaviour
+          compose_pull: true                             # Pull the latest images before starting services
+          enable_rollback: true                          # Enable rollback if deployment fails
+
+          # Docker network configuration
+          docker_network: myapp_network                  # Name of the Docker network to use
+          docker_network_driver: bridge                  # Driver for the Docker network
+
+          # Cleanup after deployment
+          docker_prune: system                           # Type of Docker prune to perform
+
+          # Registry authentication (for pulling private images)
           registry_host: docker.io
           registry_user: ${{ secrets.DOCKER_USERNAME }}
           registry_pass: ${{ secrets.DOCKER_PASSWORD }}
@@ -196,7 +266,7 @@ jobs:
 - [Docker Compose Documentation](https://docs.docker.com/compose/)
 - [Docker Swarm Documentation](https://docs.docker.com/engine/swarm/)
 - [Docker Prune Documentation](https://docs.docker.com/config/pruning/)
-- [Docker Documentation](https://docs.docker.com/network/)
+- [Docker Network Documentation](https://docs.docker.com/network/)
 
 ## Tips for Maintainers
 
@@ -206,7 +276,14 @@ jobs:
 
 ## Contributing
 
-Contributions are welcome. If you would like to improve this action, please feel free to open a pull request or raise an issue. We appreciate your input.
+Contributions are welcome. If you would like to improve this action, please feel free to open a pull request or raise an issue. I appreciate your input.
+
+## Feature Requests
+
+Have an idea or need something this action doesn't support yet?  
+Please [start a discussion](https://github.com/alcharra/docker-deploy-action/discussions/new?category=ideas) under the **Ideas** category.
+
+This helps keep feature requests organised and visible to others who may want the same thing.
 
 ## License
 
