@@ -14,21 +14,21 @@ ssh -i "$DEPLOY_KEY_PATH" \
     "$SSH_USER@$SSH_HOST" bash -s <<EOF
     set -e
 
-    # Detect Compose version
+    cd "$PROJECT_PATH"
+
+    # Detect Docker Compose command
     if docker compose version >/dev/null 2>&1; then
         COMPOSE_CMD="docker compose"
     elif docker-compose version >/dev/null 2>&1; then
         COMPOSE_CMD="docker-compose"
     else
-        echo "❌ Docker Compose is not installed on the remote server"
+        echo "❌ Docker Compose is not installed"
         exit 1
     fi
 
-    cd "$PROJECT_PATH"
-
-    # Optionally pull images
-    if [ "$COMPOSE_PULL" == "true" ]; then
-        echo "📥 Pulling updated images..."
+    # Pull images if requested
+    if [[ "$COMPOSE_PULL" == "true" ]]; then
+        echo "📥 Pulling updated images"
         \$COMPOSE_CMD pull || {
             echo "❌ Failed to pull images"
             exit 1
@@ -37,10 +37,29 @@ ssh -i "$DEPLOY_KEY_PATH" \
         echo "⏭️ Skipping image pull"
     fi
 
+    # Build up the flags
+    UP_FLAGS="-d"
+
+    if [[ "$COMPOSE_BUILD" == "true" ]]; then
+        UP_FLAGS="\$UP_FLAGS --build"
+    fi
+
+    if [[ "$COMPOSE_NO_DEPS" == "true" ]]; then
+        UP_FLAGS="\$UP_FLAGS --no-deps"
+    fi
+
     # Restart services
-    echo "🔄 Recreating services..."
-    \$COMPOSE_CMD down
-    \$COMPOSE_CMD up -d
+    if [[ -n "$COMPOSE_TARGET_SERVICES" ]]; then
+        IFS=',' read -ra SERVICES <<< "$COMPOSE_TARGET_SERVICES"
+        echo "🔁 Restarting selected services: \${SERVICES[*]}"
+        for service in "\${SERVICES[@]}"; do
+            \$COMPOSE_CMD up \$UP_FLAGS "\$service"
+        done
+    else
+        echo "🔁 Restarting all services"
+        \$COMPOSE_CMD down
+        \$COMPOSE_CMD up \$UP_FLAGS
+    fi
 
     # Verify services
     echo "🔍 Verifying services..."
@@ -50,21 +69,20 @@ ssh -i "$DEPLOY_KEY_PATH" \
         \$COMPOSE_CMD ps
 
         # Rollback if enabled
-        if [ "$ENABLE_ROLLBACK" == "true" ]; then
+        if [[ "$ENABLE_ROLLBACK" == "true" ]]; then
             echo "🔄 Attempting rollback..."
 
-            if [ -f "$PROJECT_PATH/${DEPLOY_FILE}.backup" ]; then
+            if [[ -f "${PROJECT_PATH}/${DEPLOY_FILE}.backup" ]]; then
                 echo "♻️ Restoring backup deployment file"
-                mv "$PROJECT_PATH/${DEPLOY_FILE}.backup" "$PROJECT_PATH/$DEPLOY_FILE"
+                mv "${PROJECT_PATH}/${DEPLOY_FILE}.backup" "${PROJECT_PATH}/${DEPLOY_FILE}"
 
                 echo "♻️ Re-deploying previous version"
                 \$COMPOSE_CMD down
                 \$COMPOSE_CMD up -d
 
                 echo "✅ Rollback successful"
-
                 # Clean up backup file
-                rm -f "$PROJECT_PATH/${DEPLOY_FILE}.backup"
+                rm -f "${PROJECT_PATH}/${DEPLOY_FILE}.backup"
             else
                 echo "⚠️ No backup file found, rollback skipped"
             fi
