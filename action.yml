@@ -100,6 +100,7 @@ runs:
       shell: bash
       run: ${{ github.action_path }}/entrypoint.sh
       env:
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
         SSH_HOST: ${{ inputs.ssh_host }}
         SSH_PORT: ${{ inputs.ssh_port }}
         SSH_USER: ${{ inputs.ssh_user }}

@@ -1,6 +1,15 @@
 #!/bin/bash
 set -e
 
+# Determine the root directory of the action
+if [[ -n "$GITHUB_ACTION_PATH" ]]; then
+  SCRIPT_ROOT="$GITHUB_ACTION_PATH"
+else
+  SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
+
+cd "$SCRIPT_ROOT"
+
 trap 'source ./scripts/cleanup.sh' EXIT
 
 echo "🚀 Starting Docker Deploy Action"
