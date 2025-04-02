@@ -10,7 +10,7 @@ This action securely **uploads deployment files**, ensures the **target server i
 
 > [!NOTE]  
 > A faster, lightweight alternative built with Go is now available!  
-> Check out [docker-deploy-action-go](https://github.com/alcharra/docker-deploy-action-go) – same features, better performance 🚀  
+> Check out [docker-deploy-action-go](https://github.com/alcharra/docker-deploy-action-go) - same features, better performance 🚀  
 > 🛠️ **This action will continue to be actively maintained and updated.**
 
 ## What This Action Brings You
@@ -86,12 +86,12 @@ You only need to provide one of these — not both.
 
 ## Supported Prune Types
 
-- `none` – No pruning (default)
-- `system` – Remove unused images, containers, volumes and networks
-- `volumes` – Remove unused volumes
-- `networks` – Remove unused networks
-- `images` – Remove unused images
-- `containers` – Remove stopped containers
+- `none` - No pruning (default)
+- `system` - Remove unused images, containers, volumes and networks
+- `volumes` - Remove unused volumes
+- `networks` - Remove unused networks
+- `images` - Remove unused images
+- `containers` - Remove stopped containers
 
 ## Network Management
 
