@@ -60,6 +60,7 @@ This GitHub Action makes your Docker deployments smooth, secure and reliable —
 | `registry_user`             | Username for authenticating with the registry or remote service                                      |    ❌    |                      |
 | `registry_pass`             | Password or token for authenticating with the registry or remote service                             |    ❌    |                      |
 | `enable_rollback`           | Whether to enable automatic rollback if deployment fails (`true` / `false`)                          |    ❌    | `false`              |
+| `env_vars`                  | Environment variables to write to a `.env` file and upload to the server                             |    ❌    |                      |
 
 ## SSH Host Key Verification
 
