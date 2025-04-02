@@ -34,11 +34,13 @@ ssh -i "$DEPLOY_KEY_PATH" \
     if [ "$ENABLE_ROLLBACK" == "true" ] && [ "$MODE" == "compose" ]; then
         echo "🔄 Creating a backup of the current deployment file (if exists)"
         
-        if ls "$PROJECT_PATH/$DEPLOY_FILE" >/dev/null 2>&1; then
-            cp "$PROJECT_PATH/$DEPLOY_FILE" "$PROJECT_PATH/${DEPLOY_FILE}.backup"
+        COMPOSE_FILE_NAME=\$(basename "$DEPLOY_FILE")
 
-            if ls "$PROJECT_PATH/${DEPLOY_FILE}.backup" >/dev/null 2>&1; then
-                echo "✅ Backup created: ${DEPLOY_FILE}.backup"
+        if ls "$PROJECT_PATH/\$COMPOSE_FILE_NAME" >/dev/null 2>&1; then
+            cp "$PROJECT_PATH/\$COMPOSE_FILE_NAME" "$PROJECT_PATH/\$COMPOSE_FILE_NAME.backup"
+
+            if ls "$PROJECT_PATH/\$COMPOSE_FILE_NAME.backup" >/dev/null 2>&1; then
+                echo "✅ Backup created: \$COMPOSE_FILE_NAME.backup"
             else
                 echo "❌ Backup creation failed!"
                 exit 1

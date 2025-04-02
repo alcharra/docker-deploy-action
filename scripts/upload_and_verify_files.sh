@@ -23,6 +23,13 @@ if [[ -n "$EXTRA_FILES" ]]; then
     done
 fi
 
+# Export INPUT_ENV_VARS to .env file and upload if provided
+if [[ -n "${ENV_VARS}" ]]; then
+    echo "🌿 Creating .env file with environment variables..."
+    echo "${ENV_VARS}" > .env
+    FILES_TO_UPLOAD+=(".env")
+fi
+
 # Upload files to remote server
 echo "📤 Uploading files to $SSH_USER@$SSH_HOST:$PROJECT_PATH/"
 scp -i "$DEPLOY_KEY_PATH" \

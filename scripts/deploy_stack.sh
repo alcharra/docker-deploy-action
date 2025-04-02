@@ -31,9 +31,9 @@ ssh -i "$DEPLOY_KEY_PATH" \
     # Change to project directory
     cd "$PROJECT_PATH"
 
+    echo "⚓ Deploying stack: $STACK_NAME using file: \$STACK_FILE_NAME"
     STACK_FILE_NAME=\$(basename "$DEPLOY_FILE")
 
-    echo "⚓ Deploying stack: $STACK_NAME using file: \$STACK_FILE_NAME"
     docker stack deploy -c "\$STACK_FILE_NAME" "$STACK_NAME" --with-registry-auth --detach=false
 
     echo "🔍 Verifying services in stack: $STACK_NAME"
