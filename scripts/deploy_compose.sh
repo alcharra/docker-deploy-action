@@ -64,6 +64,8 @@ ssh -i "$DEPLOY_KEY_PATH" \
     # Verify services
     echo "🔍 Verifying services..."
 
+    COMPOSE_FILE_NAME=\$(basename "$DEPLOY_FILE") 
+
     if \$COMPOSE_CMD ps | grep -E "Exit|Restarting|Dead" >/dev/null; then
         echo "❌ One or more services failed to start"
         \$COMPOSE_CMD ps
@@ -72,17 +74,15 @@ ssh -i "$DEPLOY_KEY_PATH" \
         if [[ "$ENABLE_ROLLBACK" == "true" ]]; then
             echo "🔄 Attempting rollback..."
 
-            if [[ -f "${PROJECT_PATH}/${DEPLOY_FILE}.backup" ]]; then
+            if [[ -f "\$COMPOSE_FILE_NAME.backup" ]]; then
                 echo "♻️ Restoring backup deployment file"
-                mv "${PROJECT_PATH}/${DEPLOY_FILE}.backup" "${PROJECT_PATH}/${DEPLOY_FILE}"
+                mv "\$COMPOSE_FILE_NAME.backup" "\$COMPOSE_FILE_NAME"
 
                 echo "♻️ Re-deploying previous version"
                 \$COMPOSE_CMD down
                 \$COMPOSE_CMD up -d
 
                 echo "✅ Rollback successful"
-                # Clean up backup file
-                rm -f "${PROJECT_PATH}/${DEPLOY_FILE}.backup"
             else
                 echo "⚠️ No backup file found, rollback skipped"
             fi
@@ -92,4 +92,7 @@ ssh -i "$DEPLOY_KEY_PATH" \
     else
         echo "✅ All services are running"
     fi
+
+    # Clean up backup file
+    rm -f "\$COMPOSE_FILE_NAME.backup"
 EOF

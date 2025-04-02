@@ -15,6 +15,12 @@ if [[ -n "$KNOWN_HOSTS_PATH" && -f "$KNOWN_HOSTS_PATH" ]]; then
     echo "🗑️ Removed temporary known_hosts file"
 fi
 
+# Remove .env file
+if [[ -f ".env" ]]; then
+    rm -f .env
+    echo "🗑️ Removed temporary .env file"
+fi
+
 # Kill ssh-agent if running
 if [[ -n "$SSH_AGENT_PID" ]]; then
     kill "$SSH_AGENT_PID" >/dev/null 2>&1 || true
