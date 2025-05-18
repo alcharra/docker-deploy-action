@@ -50,11 +50,16 @@ ssh -i "$DEPLOY_KEY_PATH" \
     docker stack deploy -c "\$STACK_FILE_NAME" "$STACK_NAME" --with-registry-auth --detach=false 2>&1 | tee "\$DEPLOY_OUTPUT"
 
     # Check for known critical issues in the deploy output
+    echo "🧪 Validating Stack file"
+    
     if grep -Eqi "undefined volume|unsupported option|is not supported|no such file|error:" "\$DEPLOY_OUTPUT"; then
         echo "❌ Stack deployment failed: validation error detected"
         echo "🔍 Reason:"
         grep -Ei "undefined volume|unsupported option|is not supported|no such file|error:" "\$DEPLOY_OUTPUT"
+        rm "\$DEPLOY_OUTPUT"
         exit 1
+    else
+        echo "✅ Stack file is valid"
     fi
 
     rm "\$DEPLOY_OUTPUT"
