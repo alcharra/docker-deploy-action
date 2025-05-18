@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-if [[ -z "$DOCKER_NETWORK" ]]; then
+if [ -z "$DOCKER_NETWORK" ]; then
     echo "🌐 No Docker network specified — skipping network setup"
     return 0
 fi
@@ -45,14 +45,14 @@ ssh -i "$DEPLOY_KEY_PATH" \
 
         CREATE_FLAGS="--driver $DOCKER_NETWORK_DRIVER"
 
-        if [ "$DOCKER_NETWORK_DRIVER" == "overlay" ] && [ "$MODE" == "stack" ]; then
+        if [ "$DOCKER_NETWORK_DRIVER" = "overlay" ] && [ "$MODE" = "stack" ]; then
             if ! docker info | grep -q "Swarm: active"; then
                 echo "⚠️ Warning: Swarm mode is not active. Overlay networks may not function as expected for stacks."
             fi
             CREATE_FLAGS="\$CREATE_FLAGS --scope swarm"
         fi
 
-        if [ "$DOCKER_NETWORK_DRIVER" == "overlay" ] && [ "$DOCKER_NETWORK_ATTACHABLE" == "true" ]; then
+        if [ "$DOCKER_NETWORK_DRIVER" = "overlay" ] && [ "$DOCKER_NETWORK_ATTACHABLE" = "true" ]; then
             CREATE_FLAGS="\$CREATE_FLAGS --attachable"
         fi
 
