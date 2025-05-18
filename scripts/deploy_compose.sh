@@ -32,7 +32,7 @@ ssh -i "$DEPLOY_KEY_PATH" \
 
     # Validates the Docker Compose file 
     echo "🧪 Validating Compose file"
-    if ! $COMPOSE config > /dev/null; then
+    if ! \$COMPOSE_CMD config > /dev/null; then
         echo "❌ Compose file validation failed"
         exit 1
     else
