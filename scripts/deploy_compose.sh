@@ -42,7 +42,7 @@ ssh -i "$DEPLOY_KEY_PATH" \
     # Pull images if requested
     if [ "$COMPOSE_PULL" = "true" ]; then
         echo "📥 Pulling updated images"
-        if ! $COMPOSE_CMD pull; then
+        if ! \$COMPOSE_CMD pull; then
             echo "❌ Failed to pull images"
             exit 1
         fi
