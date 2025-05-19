@@ -33,14 +33,14 @@ ssh -i "$DEPLOY_KEY_PATH" \
     # Validates the Docker Compose file 
     echo "🧪 Validating Compose file"
 
-    if ! VALIDATION_OUTPUT=\$("\$COMPOSE_CMD" config 2>&1 > /dev/null); then
+    if ! VALIDATION_OUTPUT=\$(\$COMPOSE_CMD config 2>&1); then
         echo "❌ Compose file validation failed"
         echo "🔍 Reason: \$VALIDATION_OUTPUT"
         exit 1
     else
         echo "✅ Compose file is valid"
     fi
-
+    
     # Pull images if requested
     if [ "$COMPOSE_PULL" = "true" ]; then
         echo "📥 Pulling updated images"

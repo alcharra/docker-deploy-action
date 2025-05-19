@@ -45,7 +45,7 @@ ssh -i "$DEPLOY_KEY_PATH" \
     echo "⚓ Deploying stack: $STACK_NAME using file: \$STACK_FILE_NAME"
     STACK_FILE_NAME=\$(basename "$DEPLOY_FILE")
 
-    DEPLOY_OUTPUT=$(mktemp)
+    DEPLOY_OUTPUT=\$(mktemp)
 
     docker stack deploy -c "\$STACK_FILE_NAME" "$STACK_NAME" --with-registry-auth --detach=false 2>&1 | tee "\$DEPLOY_OUTPUT"
 

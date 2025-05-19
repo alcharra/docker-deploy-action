@@ -3,6 +3,8 @@ set -e
 
 echo "🔐 Setting up SSH connection"
 
+SSH_PORT="${SSH_PORT:-22}"
+
 export DEPLOY_KEY_PATH=$(mktemp)
 echo "$SSH_KEY" > "$DEPLOY_KEY_PATH"
 chmod 600 "$DEPLOY_KEY_PATH"
@@ -18,8 +20,6 @@ if [ -n "$SSH_KEY_PASSPHRASE" ]; then
     SSH_ASKPASS="$ASKPASS_SCRIPT" setsid ssh-add "$DEPLOY_KEY_PATH" < /dev/null
 
     rm -f "$ASKPASS_SCRIPT"
-else
-    echo "🔑 No SSH passphrase provided — using direct key"
 fi
 
 export KNOWN_HOSTS_PATH=$(mktemp)
