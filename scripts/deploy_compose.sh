@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-if [[ "$MODE" != "compose" ]]; then
+if [ "$MODE" != "compose" ]; then
     return 0
 fi
 
@@ -14,8 +14,6 @@ ssh -i "$DEPLOY_KEY_PATH" \
     "$SSH_USER@$SSH_HOST" bash -s <<EOF
     set -e
 
-    cd "$PROJECT_PATH"
-
     # Detect Docker Compose command
     if docker compose version >/dev/null 2>&1; then
         COMPOSE_CMD="docker compose"
@@ -26,13 +24,30 @@ ssh -i "$DEPLOY_KEY_PATH" \
         exit 1
     fi
 
+    # Change to project directory
+    if ! cd "$PROJECT_PATH"; then
+        echo "❌ Failed to change directory to $PROJECT_PATH"
+        exit 1
+    fi
+
+    # Validates the Docker Compose file 
+    echo "🧪 Validating Compose file"
+
+    if ! VALIDATION_OUTPUT=\$(\$COMPOSE_CMD config 2>&1); then
+        echo "❌ Compose file validation failed"
+        echo "🔍 Reason: \$VALIDATION_OUTPUT"
+        exit 1
+    else
+        echo "✅ Compose file is valid"
+    fi
+    
     # Pull images if requested
-    if [[ "$COMPOSE_PULL" == "true" ]]; then
+    if [ "$COMPOSE_PULL" = "true" ]; then
         echo "📥 Pulling updated images"
-        \$COMPOSE_CMD pull || {
+        if ! \$COMPOSE_CMD pull; then
             echo "❌ Failed to pull images"
             exit 1
-        }
+        fi
     else
         echo "⏭️ Skipping image pull"
     fi
@@ -40,16 +55,16 @@ ssh -i "$DEPLOY_KEY_PATH" \
     # Build up the flags
     UP_FLAGS="-d"
 
-    if [[ "$COMPOSE_BUILD" == "true" ]]; then
+    if [ "$COMPOSE_BUILD" = "true" ]; then
         UP_FLAGS="\$UP_FLAGS --build"
     fi
 
-    if [[ "$COMPOSE_NO_DEPS" == "true" ]]; then
+    if [ "$COMPOSE_NO_DEPS" = "true" ]; then
         UP_FLAGS="\$UP_FLAGS --no-deps"
     fi
 
     # Restart services
-    if [[ -n "$COMPOSE_TARGET_SERVICES" ]]; then
+    if [ -n "$COMPOSE_TARGET_SERVICES" ]; then
         IFS=',' read -ra SERVICES <<< "$COMPOSE_TARGET_SERVICES"
         echo "🔁 Restarting selected services: \${SERVICES[*]}"
         for service in "\${SERVICES[@]}"; do
@@ -71,10 +86,10 @@ ssh -i "$DEPLOY_KEY_PATH" \
         \$COMPOSE_CMD ps
 
         # Rollback if enabled
-        if [[ "$ENABLE_ROLLBACK" == "true" ]]; then
+        if [ "$ENABLE_ROLLBACK" = "true" ]; then
             echo "🔄 Attempting rollback..."
 
-            if [[ -f "\$COMPOSE_FILE_NAME.backup" ]]; then
+            if [ -f "\$COMPOSE_FILE_NAME.backup" ]; then
                 echo "♻️ Restoring backup deployment file"
                 mv "\$COMPOSE_FILE_NAME.backup" "\$COMPOSE_FILE_NAME"
 
@@ -94,5 +109,8 @@ ssh -i "$DEPLOY_KEY_PATH" \
     fi
 
     # Clean up backup file
-    rm -f "\$COMPOSE_FILE_NAME.backup"
+    if [ -f "$COMPOSE_FILE_NAME.backup" ]; then
+        rm -f "$COMPOSE_FILE_NAME.backup"
+        echo "✅ Backup file removed"
+    fi
 EOF

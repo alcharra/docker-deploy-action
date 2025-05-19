@@ -31,7 +31,7 @@ ssh -i "$DEPLOY_KEY_PATH" \
     fi
 
     # Backup existing deploy file if applicable
-    if [ "$ENABLE_ROLLBACK" == "true" ] && [ "$MODE" == "compose" ]; then
+    if [ "$ENABLE_ROLLBACK" = "true" ] && [ "$MODE" = "compose" ]; then
         echo "🔄 Creating a backup of the current deployment file (if exists)"
         
         COMPOSE_FILE_NAME=\$(basename "$DEPLOY_FILE")

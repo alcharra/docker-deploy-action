@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-if [[ "$MODE" != "stack" ]]; then
+if [ "$MODE" != "stack" ]; then
     return 0
 fi
 
@@ -29,12 +29,40 @@ ssh -i "$DEPLOY_KEY_PATH" \
     fi
 
     # Change to project directory
-    cd "$PROJECT_PATH"
+    if ! cd "$PROJECT_PATH"; then
+        echo "❌ Failed to change directory to $PROJECT_PATH"
+        exit 1
+    fi
+
+    # Load .env if present and ENV_VARS is set
+    if [ -f ".env" ] && [ -n "${ENV_VARS}" ]; then
+        echo "📄 Loading environment variables from .env"
+        set -a
+        source .env
+        set +a
+    fi
 
     echo "⚓ Deploying stack: $STACK_NAME using file: \$STACK_FILE_NAME"
     STACK_FILE_NAME=\$(basename "$DEPLOY_FILE")
 
-    docker stack deploy -c "\$STACK_FILE_NAME" "$STACK_NAME" --with-registry-auth --detach=false
+    DEPLOY_OUTPUT=\$(mktemp)
+
+    docker stack deploy -c "\$STACK_FILE_NAME" "$STACK_NAME" --with-registry-auth --detach=false 2>&1 | tee "\$DEPLOY_OUTPUT"
+
+    # Check for known critical issues in the deploy output
+    echo "🧪 Validating Stack file"
+    
+    if grep -Eqi "undefined volume|unsupported option|is not supported|no such file|error:" "\$DEPLOY_OUTPUT"; then
+        echo "❌ Stack deployment failed: validation error detected"
+        echo "🔍 Reason:"
+        grep -Ei "undefined volume|unsupported option|is not supported|no such file|error:" "\$DEPLOY_OUTPUT"
+        rm "\$DEPLOY_OUTPUT"
+        exit 1
+    else
+        echo "✅ Stack file is valid"
+    fi
+
+    rm "\$DEPLOY_OUTPUT"
 
     echo "🔍 Verifying services in stack: $STACK_NAME"
 
@@ -44,11 +72,14 @@ ssh -i "$DEPLOY_KEY_PATH" \
         echo "❌ One or more services failed to start in stack '$STACK_NAME'"
         docker service ls --filter "label=com.docker.stack.namespace=$STACK_NAME"
 
-        if [ "$ENABLE_ROLLBACK" == "true" ]; then
+        if [ "$ENABLE_ROLLBACK" = "true" ]; then
             echo "🔄 Attempting rollback for failed services..."
+
             for service in \$(docker service ls --filter "label=com.docker.stack.namespace=$STACK_NAME" --format "{{.Name}}"); do
-                echo "🔄 Rolling back service: \$service"
-                docker service update --rollback "\$service" || echo "⚠️ Rollback failed for: \$service"
+                echo "↩️ Rolling back service: \$service"
+                if ! docker service update --rollback "\$service"; then
+                    echo "⚠️ Rollback failed for: \$service"
+                fi
             done
         fi
 

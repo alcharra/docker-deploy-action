@@ -177,39 +177,39 @@ jobs:
       - name: 📦 Checkout repository
         uses: actions/checkout@v4
 
-      # 🐳 Example 1: Deploy using Docker Stack (Swarm Mode)
+      # Example 1: Deploy using Docker Stack
       - name: 🚀 Deploy using Docker Stack
         uses: alcharra/docker-deploy-action@v2
         with:
           # SSH Connection
-          ssh_host: ${{ secrets.SSH_HOST }}                      # Remote server IP or hostname
-          ssh_user: ${{ secrets.SSH_USER }}                      # SSH username
-          ssh_key: ${{ secrets.SSH_KEY }}                        # Private SSH key
-          ssh_key_passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}  # (Optional) SSH key passphrase
-          ssh_known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}        # (Optional) known_hosts entry
+          ssh_host: ${{ secrets.SSH_HOST }} # Remote server IP or hostname
+          ssh_user: ${{ secrets.SSH_USER }} # SSH username
+          ssh_key: ${{ secrets.SSH_KEY }} # Private SSH key
+          ssh_key_passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }} # (Optional) SSH key passphrase
+          ssh_known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }} # (Optional) known_hosts entry
 
           # Deployment Settings
-          project_path: /opt/myapp                               # Remote directory for upload and deploy
-          deploy_file: docker-stack.yml                          # Stack file to deploy
-          mode: stack                                            # Deployment mode: 'stack'
-          stack_name: myapp                                      # Stack name on the target host
+          project_path: /opt/myapp # Remote directory for upload and deploy
+          deploy_file: docker-stack.yml # Stack file to deploy
+          mode: stack # Deployment mode: 'stack'
+          stack_name: myapp # Stack name on the target host
 
           # Additional Files
-          extra_files: traefik.yml                               # Upload additional files (e.g. configs)
+          extra_files: traefik.yml # Upload additional files (e.g. configs)
 
           # Docker Network Settings
-          docker_network: myapp_network                          # Network name to use or create
-          docker_network_driver: overlay                         # Network driver (e.g. bridge, overlay)
+          docker_network: myapp_network # Network name to use or create
+          docker_network_driver: overlay # Network driver (e.g. bridge, overlay)
 
           # Post-Deployment Cleanup
-          docker_prune: system                                   # Prune unused Docker resources
+          docker_prune: system # Prune unused Docker resources
 
           # Registry Authentication
           registry_host: ghcr.io
           registry_user: ${{ github.actor }}
           registry_pass: ${{ secrets.GITHUB_TOKEN }}
 
-      # 🐳 Example 2: Deploy using Docker Compose
+      # Example 2: Deploy using Docker Compose
       - name: 🚀 Deploy using Docker Compose
         uses: alcharra/docker-deploy-action@v2
         with:
@@ -217,7 +217,7 @@ jobs:
           ssh_host: ${{ secrets.SSH_HOST }}
           ssh_user: ${{ secrets.SSH_USER }}
           ssh_key: ${{ secrets.SSH_KEY }}
-          fingerprint: ${{ secrets.SSH_FINGERPRINT }}            # (Optional) SHA256 host fingerprint
+          fingerprint: ${{ secrets.SSH_FINGERPRINT }} # (Optional) SHA256 host fingerprint
 
           # Deployment Settings
           project_path: /opt/myapp
@@ -234,13 +234,13 @@ jobs:
           extra_files: database.env,nginx.conf                  # Upload environment and config files
 
           # Compose Behaviour
-          compose_pull: true                                     # Pull latest images before up
-          compose_build: true                                    # Build images before starting services
-          compose_no_deps: true                                  # Don’t start linked services
-          compose_target_services: web,db                        # Restart only selected services (optional)
+          compose_pull: true # Pull latest images before up
+          compose_build: true # Build images before starting services
+          compose_no_deps: true # Don’t start linked services
+          compose_target_services: web,db # Restart only selected services (optional)
 
           # Rollback Support
-          enable_rollback: true                                  # Automatically rollback on failure
+          enable_rollback: true # Automatically rollback on failure
 
           # Docker Network
           docker_network: myapp_network
