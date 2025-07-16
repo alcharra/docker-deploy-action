@@ -1,5 +1,10 @@
 # 🐳 Docker Deploy Action
 
+> [!WARNING]
+> **DEPRECATED – This repository is no longer maintained.**  
+> Please use the new, improved Go-based version instead:  
+> [docker-deploy-action-go](https://github.com/alcharra/docker-deploy-action-go)
+
 [![Deploy Test](https://github.com/alcharra/docker-deploy-action/actions/workflows/deploy-test.yml/badge.svg)](https://github.com/alcharra/docker-deploy-action/actions/workflows/deploy-test.yml)
 [![GitHub tag](https://img.shields.io/github/tag/alcharra/docker-deploy-action.svg)](https://github.com/alcharra/docker-deploy-action-go/releases)
 [![ShellCheck](https://github.com/alcharra/docker-deploy-action/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/alcharra/docker-deploy-action/actions/workflows/shellcheck.yml)
@@ -8,91 +13,83 @@ A **production-ready** GitHub Action for deploying **Docker Compose** or **Docke
 
 This action securely **uploads deployment files**, ensures the **target server is ready** and **automates network creation** if needed. It deploys services with **health checks, rollback support and optional cleanup** to keep your infrastructure stable.
 
-> [!NOTE]  
-> A faster, lightweight alternative built with Go is now available!  
-> Check out [docker-deploy-action-go](https://github.com/alcharra/docker-deploy-action-go) - same features, better performance 🚀  
-> 🛠️ **This action will continue to be actively maintained and updated.**
-
 ## What This Action Brings You
 
 This GitHub Action makes your Docker deployments smooth, secure and reliable — whether you’re using Docker Compose or Swarm. Here's what you get out of the box:
 
-- **📂 Flexible Deployments:** Deploy Docker Compose or Swarm stacks seamlessly over SSH to any Linux server.
-- **🛠️ Smart Setup:** Automatically creates the target project directory with the correct permissions and ownership.
-- **📦 Full Config Support:** Upload multiple config and environment files (`.env`, secrets, YAML, etc.) effortlessly.
-- **🔑 Private Registry Access:** Supports secure login to private registries like Docker Hub and GHCR.
-- **🌐 Network Intelligence:** Ensures required Docker networks exist or creates them automatically with your chosen driver.
-- **🩺 Health-First Deployments:** Built-in health checks confirm services are running and stable after deployment.
-- **♻️ Auto-Rollback on Failures:**  
+- **Flexible Deployments:** Deploy Docker Compose or Swarm stacks seamlessly over SSH to any Linux server.
+- **Smart Setup:** Automatically creates the target project directory with the correct permissions and ownership.
+- **Full Configuration Support:** Upload multiple configuration and environment files (`.env`, secrets, YAML, etc.) effortlessly.
+- **Private Registry Access:** Supports secure login to private registries such as Docker Hub and GHCR.
+- **Network Intelligence:** Ensures required Docker networks exist or creates them automatically with your chosen driver.
+- **Health-First Deployments:** Built-in health checks confirm services are running and stable after deployment.
+- **Auto-Rollback on Failures:**  
   - **Swarm:** Uses Docker's native `--rollback` feature.  
   - **Compose:** Restores the last known working deployment file.
-- **🧹 Optional Cleanup:** Reclaim disk space with Docker prune—configurable by type.
-- **📜 Transparent Logs:** Get structured logs for every step — from file transfers to health checks.
-- **🛡️ Built-In Security:** SSH keys are securely handled and wiped after deployment to keep your infrastructure safe.
-- **🚀 Fast Automation:** No need for manual SSH commands — just push to GitHub and deploy!
+- **Optional Cleanup:** Reclaim disk space with Docker prune — configurable by type.
+- **Transparent Logs:** Provides structured logs for every step — from file transfers to health checks.
+- **Built-In Security:** SSH keys are securely handled and removed after deployment to keep your infrastructure safe.
+- **Fast Automation:** No need for manual SSH commands — simply push to GitHub and deploy!
 
 ## Inputs
 
-| Input Parameter             | Description                                                                                          | Required | Default Value        |
-| --------------------------- | ---------------------------------------------------------------------------------------------------- | :------: | -------------------- |
-| `ssh_host`                  | Hostname or IP address of the target server                                                          |    ✅    |                      |
-| `ssh_port`                  | Port used for the SSH connection                                                                     |    ❌    | `22`                 |
-| `ssh_user`                  | Username used for the SSH connection                                                                 |    ✅    |                      |
-| `ssh_key`                   | Private SSH key for authentication                                                                   |    ✅    |                      |
-| `ssh_key_passphrase`        | Passphrase for the encrypted SSH private key                                                         |    ❌    |                      |
-| `ssh_known_hosts`           | Contents of the SSH `known_hosts` file used to verify the server's identity                          |    ❌    |                      |
-| `fingerprint`               | SSH host fingerprint for verifying the server's identity (SHA256 format)                             |    ❌    |                      |
-| `timeout`                   | SSH connection timeout in seconds (e.g. `10`, `30`, `60`)                                            |    ❌    | `10`                 |
-| `project_path`              | Path on the server where files will be uploaded                                                      |    ✅    |                      |
-| `deploy_file`               | Path to the file used for defining the deployment (e.g. Docker Compose)                              |    ✅    | `docker-compose.yml` |
-| `extra_files`               | Comma-separated list of additional files to upload (e.g. .env, config.yml)                           |    ❌    |                      |
-| `mode`                      | Deployment mode (`compose` or `stack`)                                                               |    ❌    | `compose`            |
-| `stack_name`                | Stack name used during Swarm deployment (required if mode is `stack`)                                |    ❌    |                      |
-| `compose_pull`              | Whether to pull the latest images before bringing up services with Docker Compose (`true` / `false`) |    ❌    | `true`               |
-| `compose_build`             | Whether to build images before starting services with Docker Compose (`true` / `false`)              |    ❌    | `false`              |
-| `compose_no_deps`           | Whether to skip starting linked services (dependencies) with Docker Compose (`true` / `false`)       |    ❌    | `false`              |
-| `compose_target_services`   | Comma-separated list of services to restart (e.g. web,db) - Restarts all if unset                    |    ❌    |                      |
-| `docker_network`            | Name of the Docker network to be used or created if missing                                          |    ❌    |                      |
-| `docker_network_driver`     | Driver for the network (`bridge`, `overlay`, `macvlan`, etc.)                                        |    ❌    | `bridge`             |
-| `docker_network_attachable` | Whether standalone containers can attach to the network (`true` / `false`)                           |    ❌    | `false`              |
-| `docker_prune`              | Type of Docker resource prune to run after deployment                                                |    ❌    | `none`               |
-| `registry_host`             | Host address for the registry or remote service requiring authentication                             |    ❌    |                      |
-| `registry_user`             | Username for authenticating with the registry or remote service                                      |    ❌    |                      |
-| `registry_pass`             | Password or token for authenticating with the registry or remote service                             |    ❌    |                      |
-| `enable_rollback`           | Whether to enable automatic rollback if deployment fails (`true` / `false`)                          |    ❌    | `false`              |
-| `env_vars`                  | Environment variables to write to a `.env` file and upload to the server                             |    ❌    |                      |
+| Input Parameter             | Description                                                                             | Required | Default Value        |
+| --------------------------- | --------------------------------------------------------------------------------------- | :------: | -------------------- |
+| `ssh_host`                  | The hostname or IP address of the remote server you’re deploying to                     |    ✅    |                      |
+| `ssh_port`                  | The port used to connect via SSH                                                        |    ❌    | `22`                 |
+| `ssh_user`                  | The SSH username used to connect to the server                                          |    ✅    |                      |
+| `ssh_key`                   | Your private SSH key for authenticating with the server                                 |    ✅    |                      |
+| `ssh_key_passphrase`        | The passphrase used to unlock the SSH key                                               |    ❌    |                      |
+| `ssh_known_hosts`           | The contents of your `known_hosts` file, used to verify the server’s identity           |    ❌    |                      |
+| `fingerprint`               | The server’s SSH fingerprint in SHA256 format (alternative to `known_hosts`)            |    ❌    |                      |
+| `timeout`                   | SSH connection timeout in seconds (e.g. `10`, `30`, `60`)                               |    ❌    | `10`                 |
+| `project_path`              | The full path on the server where files will be uploaded and deployed                   |    ✅    |                      |
+| `deploy_file`               | The name of your main deployment file (e.g. `docker-compose.yml` or `docker-stack.yml`) |    ✅    | `docker-compose.yml` |
+| `extra_files`               | A list of extra files or folders to upload. Use a multi-line format — one path per line |    ❌    |                      |
+| `mode`                      | Deployment method: either `compose` or `stack`                                          |    ❌    | `compose`            |
+| `stack_name`                | Name of the Docker stack (required if using `stack` mode)                               |    ❌    |                      |
+| `compose_pull`              | Pull the latest images before starting services (`true` or `false`)                     |    ❌    | `true`               |
+| `compose_build`             | Build images before starting services (`true` or `false`)                               |    ❌    | `false`              |
+| `compose_no_deps`           | Skip starting linked services (`true` or `false`)                                       |    ❌    | `false`              |
+| `compose_target_services`   | A list of specific services to restart. Use a multi-line format — one service per line  |    ❌    |                      |
+| `docker_network`            | The name of the Docker network to use or create if missing                              |    ❌    |                      |
+| `docker_network_driver`     | The network driver to use (`bridge`, `overlay`, etc.)                                   |    ❌    | `bridge`             |
+| `docker_network_attachable` | Allow standalone containers to attach to the network (`true` or `false`)                |    ❌    | `false`              |
+| `docker_prune`              | Type of Docker clean-up to run after deployment (e.g. `system`, `volumes`, `none`)      |    ❌    | `none`               |
+| `registry_host`             | The container registry hostname (e.g. `ghcr.io`) if login is required                   |    ❌    |                      |
+| `registry_user`             | Username for the registry                                                               |    ❌    |                      |
+| `registry_pass`             | Password or token for the registry                                                      |    ❌    |                      |
+| `enable_rollback`           | Automatically roll back if deployment fails (`true` or `false`)                         |    ❌    | `false`              |
+| `env_vars`                  | Environment variables to include in a `.env` file uploaded to the server                |    ❌    |                      |
 
 ## SSH Host Key Verification
 
-This tool supports two secure options for verifying the SSH server's identity during deployment:
+To securely verify the identity of your SSH server, you can use **either** of the following:
 
-- Providing a `known_hosts` entry (OpenSSH-compatible format)
-- Supplying the server's SSH key `fingerprint` (a single-line public key)
+- A `known_hosts` entry (compatible with OpenSSH)
+- A SHA256 `fingerprint` of the server's host key
 
-You only need to provide one of these — not both.
-
-> [!WARNING]  
-> If neither `ssh_known_hosts` nor `fingerprint` is specified, the tool will fall back to scanning the server key using `ssh-keyscan`.  
-> While this avoids prompts during automation, it does not confirm the authenticity of the host key.  
-> This approach is not secure and should not be used in production environments.
+You only need to provide **one** — not both.
 
 > [!IMPORTANT]  
-> For a secure deployment, always provide either a `known_hosts` entry or a `fingerprint`.  
-> This helps ensure that the connection is made to the correct server and prevents impersonation.
+> If neither `ssh_known_hosts` nor `fingerprint` is set, the script will automatically fetch the server’s key using `ssh-keyscan`.  
+> While this avoids prompts during automation, it does **not** confirm the key's authenticity and leaves your connection vulnerable to man-in-the-middle attacks.  
+> This approach is **not safe for production**. Always provide one of the verification options and store it securely using a GitHub secret or environment variable.
 
-> [!TIP]  
-> Use `ssh_known_hosts` for full compatibility with OpenSSH and to support multiple key types.  
-> Use `fingerprint` for a simpler, one-line setup if connecting to a single known host.  
-> In either case, store the value securely using a GitHub environment variable or secret.
+For most setups:
+- Use `known_hosts` if you're already managing SSH access or require OpenSSH compatibility.
+- Use `fingerprint` for a quick, one-line setup — ideal for connecting to a single known server.
 
 ## Supported Prune Types
 
-- `none` - No pruning (default)
-- `system` - Remove unused images, containers, volumes and networks
-- `volumes` - Remove unused volumes
-- `networks` - Remove unused networks
-- `images` - Remove unused images
-- `containers` - Remove stopped containers
+You can choose what to clean up on the server after deployment by setting the `docker_prune` option. The following types are supported:
+
+- `none` – No pruning (default)
+- `system` – Remove unused images, containers, volumes and networks
+- `volumes` – Remove unused volumes
+- `networks` – Remove unused networks
+- `images` – Remove unused images
+- `containers` – Remove stopped containers
 
 ## Network Management
 
